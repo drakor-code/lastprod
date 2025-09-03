@@ -5,34 +5,17 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Upload, Download, AlertTriangle, Save, Building2 } from "lucide-react"
+import { Save, Building2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { AdminOnly } from "@/components/admin-only"
-import { restoreBackupAction } from "@/app/actions/backup"
+import { useAuth } from "@/components/auth-context"
 
 export default function SettingsPage() {
+  const { user } = useAuth()
   const [companyName, setCompanyName] = useState("")
   const [companyDescription, setCompanyDescription] = useState("")
-  const [companyLogo, setCompanyLogo] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [isBackupLoading, setIsBackupLoading] = useState(false)
-  const [isRestoreLoading, setIsRestoreLoading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const savedSettings = localStorage.getItem("companySettings")
@@ -47,7 +30,6 @@ export default function SettingsPage() {
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      setCompanyLogo(file)
       const reader = new FileReader()
       reader.onload = (e) => {
         setLogoPreview(e.target?.result as string)
@@ -70,83 +52,16 @@ export default function SettingsPage() {
     })
   }
 
-  const handleBackup = async () => {
-    setIsBackupLoading(true)
-    try {
-      const response = await fetch("/api/backup/download")
-
-      if (!response.ok) {
-        throw new Error("فشل في إنشاء النسخة الاحتياطية")
-      }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `debt-iq-backup-${new Date().toISOString().split("T")[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast({
-        title: "تم إنشاء النسخة الاحتياطية",
-        description: "تم تصدير البيانات وتحميلها بنجاح",
-      })
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء إنشاء النسخة الاحتياطية",
-        variant: "destructive",
-      })
-    } finally {
-      setIsBackupLoading(false)
-    }
-  }
-
-  const handleRestore = async () => {
-    if (!fileInputRef.current?.files?.[0]) {
-      toast({
-        title: "خطأ",
-        description: "يرجى اختيار ملف النسخة الاحتياطية أولاً",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsRestoreLoading(true)
-    try {
-      const file = fileInputRef.current.files[0]
-      const fileContent = await file.text()
-
-      const result = await restoreBackupAction(fileContent)
-
-      if (result.error) {
-        toast({
-          title: "خطأ",
-          description: result.error,
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "تم استعادة النسخة الاحتياطية",
-          description: "تم استيراد البيانات بنجاح. سيتم إعادة تحميل الصفحة.",
-        })
-
-        // Reload page after 2 seconds to reflect changes
-        setTimeout(() => {
-          window.location.reload()
-        }, 2000)
-      }
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء قراءة ملف النسخة الاحتياطية",
-        variant: "destructive",
-      })
-    } finally {
-      setIsRestoreLoading(false)
-    }
+  if (user?.role !== "admin") {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">هذه الصفحة متاحة للمديرين فقط</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -156,7 +71,6 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">إدارة إعدادات النظام والشركة</p>
       </div>
 
-      {/* القسم العلوي: الإعدادات العامة */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -166,7 +80,6 @@ export default function SettingsPage() {
           <CardDescription>معلومات الشركة التي ستظهر في التقارير المطبوعة</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* اسم الشركة */}
           <div className="space-y-2">
             <Label htmlFor="companyName">اسم الشركة</Label>
             <Input
@@ -178,7 +91,6 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* وصف الشركة */}
           <div className="space-y-2">
             <Label htmlFor="companyDescription">وصف الشركة</Label>
             <Textarea
@@ -190,7 +102,6 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* شعار الشركة */}
           <div className="space-y-2">
             <Label htmlFor="companyLogo">شعار الشركة</Label>
             <div className="flex items-center gap-4">
@@ -206,7 +117,7 @@ export default function SettingsPage() {
               {logoPreview ? (
                 <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden">
                   <img
-                    src={logoPreview || "/placeholder.svg"}
+                    src={logoPreview}
                     alt="معاينة الشعار"
                     className="w-full h-full object-cover"
                   />
@@ -219,85 +130,12 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* زر حفظ الإعدادات */}
           <Button onClick={handleSaveSettings} className="w-full">
             <Save className="h-4 w-4 ml-2" />
             حفظ الإعدادات
           </Button>
         </CardContent>
       </Card>
-
-      <Separator className="my-8" />
-
-      {/* القسم السفلي: عمليات قاعدة البيانات */}
-      <AdminOnly showError>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              عمليات قاعدة البيانات
-            </CardTitle>
-            <CardDescription>النسخ الاحتياطي واستعادة البيانات</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* تنبيه */}
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                هذه العمليات متاحة للمديرين فقط. تأكد من إنشاء نسخة احتياطية قبل استعادة البيانات.
-              </AlertDescription>
-            </Alert>
-
-            {/* أزرار العمليات */}
-            <div className="space-y-4">
-              {/* زر النسخ الاحتياطي */}
-              <Button
-                onClick={handleBackup}
-                variant="outline"
-                className="w-full bg-transparent"
-                disabled={isBackupLoading}
-              >
-                <Download className="h-4 w-4 ml-2" />
-                {isBackupLoading ? "جاري إنشاء النسخة الاحتياطية..." : "تحميل نسخة احتياطية"}
-              </Button>
-
-              {/* اختيار ملف الاستعادة */}
-              <div className="space-y-2">
-                <Label htmlFor="backupFile">اختر ملف النسخة الاحتياطية للاستعادة</Label>
-                <Input id="backupFile" type="file" accept=".json" ref={fileInputRef} className="cursor-pointer" />
-              </div>
-
-              {/* زر استعادة النسخة الاحتياطية */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full" disabled={isRestoreLoading}>
-                    <Upload className="h-4 w-4 ml-2" />
-                    {isRestoreLoading ? "جاري الاستعادة..." : "استعادة نسخة احتياطية"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                    <AlertDialogDescription className="text-right">
-                      سيتم حذف جميع البيانات الحالية (الموردين، العملاء، المعاملات) واستبدالها بالبيانات الموجودة في ملف
-                      النسخة الاحتياطية. هذا الإجراء لا يمكن التراجع عنه. تأكد من اختيار الملف الصحيح.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleRestore}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      تأكيد الاستعادة
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </CardContent>
-        </Card>
-      </AdminOnly>
     </div>
   )
 }

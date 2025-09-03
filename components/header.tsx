@@ -11,7 +11,6 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LogOut, User, Settings } from "lucide-react"
 import { useAuth } from "./auth-context"
-import { ConnectionStatus } from "./connection-status"
 import Link from "next/link"
 
 export function Header() {
@@ -29,12 +28,9 @@ export function Header() {
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
       {/* Welcome Message */}
-      <div className="text-right flex items-center gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">أهلاً وسهلاً بك: {user?.name}</h2>
-          <p className="text-sm text-muted-foreground">الصلاحية: {user?.role === "admin" ? "مدير" : "موظف"}</p>
-        </div>
-        <ConnectionStatus />
+      <div className="text-right">
+        <h2 className="text-lg font-semibold text-foreground">أهلاً وسهلاً بك: {user?.name}</h2>
+        <p className="text-sm text-muted-foreground">الصلاحية: {user?.role === "admin" ? "مدير" : "موظف"}</p>
       </div>
 
       {/* User Menu */}
@@ -56,12 +52,6 @@ export function Header() {
             </div>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard/profile" className="cursor-pointer">
-              <User className="ml-2 h-4 w-4" />
-              <span>الملف الشخصي</span>
-            </Link>
-          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/dashboard/settings" className="cursor-pointer">
               <Settings className="ml-2 h-4 w-4" />

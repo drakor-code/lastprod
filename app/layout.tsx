@@ -7,6 +7,7 @@ import { Suspense } from "react"
 import { AuthProvider } from "@/components/auth-context"
 import { DebtProvider } from "@/components/debt-context"
 import { UserProvider } from "@/components/user-context"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({
           <UserProvider>
             <DebtProvider>
               <Suspense fallback={null}>{children}</Suspense>
+              <Toaster />
             </DebtProvider>
           </UserProvider>
         </AuthProvider>
